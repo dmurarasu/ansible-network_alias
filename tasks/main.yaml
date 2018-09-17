@@ -1,0 +1,55 @@
+---
+
+- name: Check network device OS
+  assert:
+    that: >
+      ansible_network_os == 'nxos' or
+      ansible_network_os == 'ios'
+    msg: "Network device OS not defined or not supported by this role: {{ ansible_network_os }}"
+
+- name: create alias temp file
+  tempfile:
+    state: file
+    prefix: ansible_
+    suffix: "_{{ inventory_hostname }}"
+  register: network_alias_file
+  check_mode: no
+  changed_when: false
+  tags:
+    - alias_config
+
+- name: Create alias config in temp file
+  template:
+    src: "{{ ansible_network_os }}_alias.j2"
+    dest: "{{ network_alias_file.path }}"
+  check_mode: no
+  changed_when: false             
+  tags: 
+    - alias_config
+
+- name: display alias config file content
+  debug: msg="{{ lookup('file', network_alias_file.path).split('\n') }}"
+  when: 
+    - alias_display_config is defined
+    - alias_display_config
+  ignore_errors: true
+  check_mode: no  
+  tags: 
+    - alias_config
+
+- name: Push alias config to nxos
+  nxos_config:
+    src: "{{ network_alias_file.path }}"    
+  when: >
+    ansible_network_os == 'nxos'
+  tags: 
+    - alias_config
+
+- name: delete temp file
+  file:
+    path: "{{ network_alias_file.path }}"
+    state: absent
+  check_mode: no 
+  changed_when: false   
+  tags: 
+    - alias_config

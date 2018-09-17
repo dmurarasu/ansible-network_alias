@@ -1,0 +1,5 @@
+{%- if network_alias is defined -%}
+  {%- for alias in network_alias -%}
+cli alias name {{ alias.name }} {{ alias.cmd }} {{ "\n" }}
+  {%- endfor -%}
+{%- endif -%}
